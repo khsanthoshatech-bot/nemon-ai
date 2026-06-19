@@ -68,11 +68,7 @@ npm install
 ```
 
 Create a `.env` file:
-
-```env
-OPENROUTER_API_KEY=your_api_key
-VITE_CLERK_PUBLISHABLE_KEY=your_clerk_key
-```
+ADD API key here
 
 Start development server:
 
