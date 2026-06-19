@@ -151,44 +151,17 @@ export default function App() {
         }),
       });
 
-      const reader = response.body?.getReader();
-
-      if (!reader) {
-        throw new Error("No response stream");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "API Error");
       }
 
-      let aiText = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) break;
-
-        const chunk = new TextDecoder().decode(value);
-
-        const lines = chunk
-          .split("\n")
-          .filter((line) => line.startsWith("data: "));
-
-        for (const line of lines) {
-          const data = line.replace("data: ", "");
-
-          if (data === "[DONE]") continue;
-
-          try {
-            const parsed = JSON.parse(data);
-
-            if (parsed.text) {
-              aiText += parsed.text;
-            }
-          } catch {}
-        }
-      }
+      const data = await response.json();
 
       const aiMessage: Message = {
         id: `${Date.now()}-ai`,
         role: "model",
-        content: aiText,
+        content: data.text || "No response received",
         timestamp: new Date().toLocaleTimeString(),
         model: selectedModel,
       };
