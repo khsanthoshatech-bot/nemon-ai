@@ -152,8 +152,9 @@ export default function App() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "API Error");
+        const errorText = await response.text();
+        console.error("API ERROR:", errorText);
+        throw new Error(errorText);
       }
 
       const data = await response.json();
