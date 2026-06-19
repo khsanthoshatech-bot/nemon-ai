@@ -24,12 +24,54 @@ export default async function handler(req: any, res: any) {
     const actualModel =
       modelMap[model] || "openai/gpt-4o-mini";
 
+    console.log(
+      "MESSAGES:",
+      JSON.stringify(messages, null, 2)
+    );
+
     const response = await client.chat.completions.create({
       model: actualModel,
-      messages: messages.map((m: any) => ({
-        role: m.role === "model" ? "assistant" : "user",
-        content: m.content || "",
-      })),
+      messages: messages.map((m: any) => {
+        const role =
+          m.role === "model"
+            ? "assistant"
+            : "user";
+
+        const imageAttachment =
+          m.attachments?.find(
+            (a: any) =>
+              a.type &&
+              a.type.startsWith("image/")
+          );
+
+        if (
+          imageAttachment &&
+          imageAttachment.content
+        ) {
+          return {
+            role,
+            content: [
+              {
+                type: "text",
+                text:
+                  m.content?.trim() ||
+                  "Describe this image in detail."
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: imageAttachment.content,
+                },
+              },
+            ],
+          };
+        }
+
+        return {
+          role,
+          content: m.content || "",
+        };
+      }),
     });
 
     return res.status(200).json({
