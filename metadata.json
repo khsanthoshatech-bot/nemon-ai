@@ -1,0 +1,8 @@
+{
+  "name": "Nemon AI",
+  "description": "Premium SaaS AI Chatbot Workspace featuring neon glowing glassmorphic elements, particle backdrops, and state-of-the-art streaming conversations.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
