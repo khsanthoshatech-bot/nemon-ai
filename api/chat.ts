@@ -15,26 +15,28 @@ export default async function handler(req: any, res: any) {
 
     const { messages } = req.body;
 
+    const formattedMessages = messages.map((m: any) => ({
+      role: m.role === "model" ? "assistant" : "user",
+      content: m.content || "",
+    }));
+
     const response = await client.chat.completions.create({
-      model: "nvidia/llama-nemotron-ultra-253b-v1:free",
-      messages: messages.map((m: any) => ({
-        role: m.role === "model" ? "assistant" : "user",
-        content: m.content || "",
-      })),
+      model: "poolside/laguna-m1:free",
+      messages: formattedMessages,
     });
 
+    const aiText =
+      response.choices?.[0]?.message?.content ||
+      "No response generated";
+
     return res.status(200).json({
-      text:
-        response.choices?.[0]?.message?.content ||
-        "No response generated",
+      text: aiText,
     });
   } catch (error: any) {
     console.error("API ERROR:", error);
 
     return res.status(500).json({
-      error:
-        error?.message ||
-        "Server Error",
+      error: error?.message || "Server Error",
     });
   }
 }
