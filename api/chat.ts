@@ -13,19 +13,10 @@ export default async function handler(req: any, res: any) {
       baseURL: "https://openrouter.ai/api/v1",
     });
 
-    const { messages, model } = req.body;
-
-    const modelMap: Record<string, string> = {
-      "nemon-flash": "meta-llama/llama-3.2-3b-instruct:free",
-      "nemon-pro": "google/gemma-3-4b-it:free",
-      "nemon-vision": "google/gemma-3-4b-it:free",
-    };
-
-    const actualModel =
-      modelMap[model] || "meta-llama/llama-3.2-3b-instruct:free";
+    const { messages } = req.body;
 
     const response = await client.chat.completions.create({
-      model: actualModel,
+      model: "nvidia/llama-nemotron-ultra-253b-v1:free",
       messages: messages.map((m: any) => ({
         role: m.role === "model" ? "assistant" : "user",
         content: m.content || "",
@@ -38,10 +29,12 @@ export default async function handler(req: any, res: any) {
         "No response generated",
     });
   } catch (error: any) {
-    console.error(error);
+    console.error("API ERROR:", error);
 
     return res.status(500).json({
-      error: error?.message || "Server Error",
+      error:
+        error?.message ||
+        "Server Error",
     });
   }
 }
