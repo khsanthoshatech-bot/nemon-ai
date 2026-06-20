@@ -91,27 +91,70 @@ export default function InputArea({ onSendMessage, isGenerating, theme }: InputA
       return;
     }
 
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+  
+      reader.onload = (e) => {
+        const img = new window.Image();
+  
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+  
+          let width = img.width;
+          let height = img.height;
+  
+          const MAX_WIDTH = 1024;
+  
+          if (width > MAX_WIDTH) {
+            height = (height * MAX_WIDTH) / width;
+            width = MAX_WIDTH;
+          }
+  
+          canvas.width = width;
+          canvas.height = height;
+  
+          const ctx = canvas.getContext("2d");
+  
+          if (!ctx) return;
+  
+          ctx.drawImage(img, 0, 0, width, height);
+  
+          const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
+  
+          const newAttachment: Attachment = {
+            name: file.name,
+            type: "image/jpeg",
+            size: `${(file.size / 1024).toFixed(1)} KB`,
+            content: compressedBase64,
+          };
+  
+          setAttachments((prev) => [...prev, newAttachment]);
+        };
+  
+        img.src = e.target?.result as string;
+      };
+  
+      reader.readAsDataURL(file);
+      return;
+    }
+  
+    // Existing document code for text/code files
     const reader = new FileReader();
-    const isImage = file.type.startsWith("image/");
-
+  
     reader.onload = (event) => {
       if (event.target?.result) {
-        const result = event.target.result as string;
         const newAttachment: Attachment = {
           name: file.name,
           type: file.type,
           size: `${(file.size / 1024).toFixed(1)} KB`,
-          content: result, // Holds base64 for image, or raw contents
+          content: event.target.result as string,
         };
+  
         setAttachments((prev) => [...prev, newAttachment]);
       }
     };
-
-    if (isImage) {
-      reader.readAsDataURL(file);
-    } else {
-      reader.readAsText(file);
-    }
+  
+    reader.readAsText(file);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
