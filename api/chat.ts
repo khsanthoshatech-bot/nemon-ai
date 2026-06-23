@@ -17,28 +17,50 @@ export default async function handler(req: any, res: any) {
 
     const { messages } = req.body;
 
-    const response = await client.chat.completions.create({
-      model: "meta-llama/llama-3.2-3b-instruct:free",
+    const formattedMessages = messages.map((m: any) => ({
+      role: m.role === "model" ? "assistant" : "user",
+      content: m.content || "",
+    }));
 
-      messages: messages.map((m: any) => ({
-        role: m.role === "model" ? "assistant" : "user",
-        content: m.content || "",
-      })),
+    let response;
 
-      max_tokens: 200,
-      temperature: 0.7,
-    });
+    try {
+      console.log("Trying Model 1");
+
+      response = await client.chat.completions.create({
+        model: "nvidia/nemotron-3-super:free",
+        messages: formattedMessages,
+        max_tokens: 200,
+        temperature: 0.7,
+      });
+    } catch (err) {
+      console.log("Model 1 failed, trying Model 2");
+
+      response = await client.chat.completions.create({
+        model: "openai/gpt-oss-120b:free",
+        messages: formattedMessages,
+        max_tokens: 200,
+        temperature: 0.7,
+      });
+    }
 
     console.log("Response received");
 
     return res.status(200).json({
       text:
-        response.choices?.[0]?.message?.content ||
+        response?.choices?.[0]?.message?.content ||
         "No response generated",
     });
 
   } catch (error: any) {
     console.error("API ERROR:", error);
+
+    if (error?.status === 429) {
+      return res.status(429).json({
+        error:
+          "Free model is busy. Please wait 30 seconds and try again.",
+      });
+    }
 
     return res.status(500).json({
       error:
