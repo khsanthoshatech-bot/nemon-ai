@@ -1,7 +1,13 @@
 import OpenAI from "openai";
 
+const MODELS = [
+  "deepseek/deepseek-r1:free",
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "qwen/qwen3-235b-a22b:free",
+];
+
 export default async function handler(req: any, res: any) {
-  // Handle CORS
+  // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
     "Access-Control-Allow-Methods",
@@ -23,50 +29,57 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    if (!process.env.OPENROUTER_API_KEY) {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+
+    if (!apiKey) {
       return res.status(500).json({
-        error: "OPENROUTER_API_KEY is missing in Vercel Environment Variables.",
+        error:
+          "OPENROUTER_API_KEY is missing from Vercel Environment Variables.",
       });
     }
 
     const client = new OpenAI({
-      apiKey: process.env.OPENROUTER_API_KEY,
+      apiKey,
       baseURL: "https://openrouter.ai/api/v1",
       defaultHeaders: {
-        "HTTP-Referer": "https://nemon-ai.vercel.app",
+        "HTTP-Referer": "https://nemon-ai-kh-santhosh-s-projects.vercel.app",
         "X-Title": "Nemon AI",
       },
     });
 
-    const { messages } = req.body;
+    const { messages = [], systemInstruction } = req.body;
 
-    if (!messages || !Array.isArray(messages)) {
+    if (!Array.isArray(messages)) {
       return res.status(400).json({
-        error: "Messages are required.",
+        error: "messages must be an array",
       });
     }
 
-    const formattedMessages = messages.map((m: any) => ({
-      role:
-        m.role === "model"
-          ? "assistant"
-          : m.role === "assistant"
-          ? "assistant"
-          : "user",
-      content: m.content || "",
-    }));
+    const formattedMessages: any[] = [];
 
-    const models = [
-      "nvidia/nemotron-3-super:free",
-      "openai/gpt-oss-120b:free",
-      "deepseek/deepseek-r1:free",
-      "meta-llama/llama-3.3-70b-instruct:free",
-    ];
+    if (systemInstruction) {
+      formattedMessages.push({
+        role: "system",
+        content: systemInstruction,
+      });
+    }
+
+    for (const m of messages) {
+      formattedMessages.push({
+        role:
+          m.role === "model"
+            ? "assistant"
+            : m.role === "assistant"
+            ? "assistant"
+            : "user",
+        content: m.content ?? "",
+      });
+    }
 
     let response: any = null;
     let lastError: any = null;
 
-    for (const model of models) {
+    for (const model of MODELS) {
       try {
         console.log("Trying:", model);
 
@@ -74,20 +87,24 @@ export default async function handler(req: any, res: any) {
           model,
           messages: formattedMessages,
           temperature: 0.7,
-          max_tokens: 512,
+          max_tokens: 1024,
         });
 
         console.log("Success:", model);
+
         break;
-      } catch (err) {
-        console.error("Failed:", model);
+      } catch (err: any) {
+        console.error(model, err?.message);
+
         lastError = err;
       }
     }
 
     if (!response) {
       return res.status(500).json({
-        error: lastError?.message || "All AI models failed.",
+        error:
+          lastError?.message ||
+          "All models failed.",
       });
     }
 
@@ -96,16 +113,19 @@ export default async function handler(req: any, res: any) {
       model: response.model,
       text:
         response.choices?.[0]?.message?.content ??
-        "No response generated.",
+        "No response",
     });
-  } catch (error: any) {
-    console.error(error);
+  } catch (err: any) {
+    console.error("FULL ERROR");
+    console.dir(err, {
+      depth: null,
+    });
 
-    return res.status(error.status || 500).json({
+    return res.status(err?.status || 500).json({
       success: false,
       error:
-        error?.error?.message ||
-        error?.message ||
+        err?.error?.message ||
+        err?.message ||
         "Internal Server Error",
     });
   }
